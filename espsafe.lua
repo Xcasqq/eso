@@ -229,63 +229,90 @@ local function toggleSwitch()
         })
         
         -- ESP Scriptini Çalıştır
-        pcall(function()
-            local colorIndex = 1
-            local colors = {
-                Color3.fromRGB(255, 0, 0), -- Red
-                Color3.fromRGB(0, 255, 0), -- Green
-                Color3.fromRGB(0, 0, 255), -- Blue
-                Color3.fromRGB(255, 255, 0), -- Yellow
-                Color3.fromRGB(255, 0, 255), -- Magenta
-                Color3.fromRGB(0, 255, 255) -- Cyan
-            }
+    --[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+-- SIMPLE ESP - WORKS ON XENO, DELTA, FLUXUS, KRNL - NO CRASH
+-- Press INSERT to toggle
 
-            local function highlightCharacter(character, enable)
-                local highlight = character:FindFirstChildOfClass("Highlight")
-                if enable then
-                    if not highlight then
-                        highlight = Instance.new("Highlight")
-                        highlight.Parent = character
-                    end
-                    highlight.FillColor = colors[colorIndex]
-                    highlight.OutlineColor = colors[colorIndex]
-                    highlight.FillTransparency = 0.3
-                    highlight.OutlineTransparency = 0
-                else
-                    if highlight then
-                        highlight:Destroy()
-                    end
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+local ESPEnabled = true
+
+-- Create ESP for a player
+local function AddESP(player)
+    if player == LocalPlayer then return end
+    if player.Character then
+        local root = player.Character:FindFirstChild("HumanoidRootPart")
+        local head = player.Character:FindFirstChild("Head")
+        if root and head then
+            -- Name above head
+            local billboard = Instance.new("BillboardGui")
+            billboard.Adornee = head
+            billboard.Size = UDim2.new(0, 100, 0, 50)
+            billboard.StudsOffset = Vector3.new(0, 3, 0)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = head
+
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Size = UDim2.new(1, 0, 1, 0)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.Text = player.Name
+            nameLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+            nameLabel.TextStrokeTransparency = 0.5
+            nameLabel.Font = Enum.Font.SourceSansBold
+            nameLabel.TextSize = 18
+            nameLabel.Parent = billboard
+
+            -- Distance label
+            local distLabel = Instance.new("TextLabel")
+            distLabel.Size = UDim2.new(1, 0, 1, 0)
+            distLabel.Position = UDim2.new(0, 0, 1, 0)
+            distLabel.BackgroundTransparency = 1
+            distLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+            distLabel.TextStrokeTransparency = 0.5
+            distLabel.Font = Enum.Font.SourceSans
+            distLabel.TextSize = 16
+            distLabel.Parent = billboard
+
+            -- Update distance
+            RunService.RenderStepped:Connect(function()
+                if not ESPEnabled or not player.Character or not LocalPlayer.Character then
+                    billboard.Enabled = false
+                    return
                 end
-            end
-
-            -- Başlangıçta tüm oyuncuları highlight et
-            for _, player in pairs(game.Players:GetPlayers()) do
-                if player ~= game.Players.LocalPlayer and player.Character then
-                    highlightCharacter(player.Character, true)
+                local lpRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if lpRoot and root then
+                    local dist = (lpRoot.Position - root.Position).Magnitude
+                    distLabel.Text = math.floor(dist) .. "m"
+                    billboard.Enabled = true
                 end
-            end
-
-            -- Yeni oyuncular için
-            _G.ESPPlayerAdded = game.Players.PlayerAdded:Connect(function(player)
-                player.CharacterAdded:Connect(function(character)
-                    if switchOn then -- Switch hala açıksa
-                        highlightCharacter(character, true)
-                    end
-                end)
             end)
+        end
+    end
+end
 
-            -- Renk değiştirme fonksiyonu (isteğe bağlı)
-            _G.ESPColorChange = function()
-                colorIndex = colorIndex % #colors + 1
-                if switchOn then
-                    for _, player in pairs(game.Players:GetPlayers()) do
-                        if player ~= game.Players.LocalPlayer and player.Character then
-                            highlightCharacter(player.Character, true)
-                        end
-                    end
-                end
-            end
-        end)
+-- Add ESP to all players
+for _, player in pairs(Players:GetPlayers()) do
+    AddESP(player)
+end
+
+-- Add for new players
+Players.PlayerAdded:Connect(AddESP)
+
+-- Toggle with Insert
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Insert then
+        ESPEnabled = not ESPEnabled
+        print("ESP Toggled:", ESPEnabled and "ON" or "OFF")
+    end
+end)
+
+print("Simple ESP Loaded! Press INSERT to toggle.")
         
     else
         -- KAPALI durum
